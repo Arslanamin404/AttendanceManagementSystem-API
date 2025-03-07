@@ -30,7 +30,7 @@ export class ReportController {
         return res.status(400).json({ error: "Month and year are required" });
       }
 
-      const attendance = AttendanceService.getAttendanceMonthly({
+      const attendance = await AttendanceService.getAttendanceMonthly({
         year,
         month,
       });
@@ -56,11 +56,12 @@ export class ReportController {
           .status(400)
           .json({ error: "User ID, start date, and end date are required" });
       }
-      const records = AttendanceService.getAttendanceRecordsByStartAndEndDate({
-        userID,
-        startDate,
-        endDate,
-      });
+      const records =
+        await AttendanceService.getAttendanceRecordsByStartAndEndDate({
+          userID,
+          startDate,
+          endDate,
+        });
 
       return res.status(200).json({
         success: true,
@@ -102,32 +103,29 @@ export class ReportController {
   static async exportReport(req, res) {
     try {
       const { startDate, endDate } = req.query;
-      if (!startDate || !endDate) {
-        return res
-          .status(400)
-          .json({ error: "start date and end date are required (YYYY-MM-DD)" });
-      }
-      const records = AttendanceService.getAttendanceRecordsByStartAndEndDate({
-        startDate,
-        endDate,
-      });
+
+      const records =
+        await AttendanceService.getAttendanceRecordsByStartAndEndDate({
+          startDate,
+          endDate,
+        });
 
       if (!records.length) {
-        return res.status(404).json({
-          success: false,
-          error: "No attendance records found.",
-        });
+        return res.status(404).json({ error: "No attendance records found." });
       }
 
       res.setHeader(
         "Content-Disposition",
-        "attachment; filename=attendanceReport.csv"
+        "attachment; filename=attendance.csv"
       );
       res.setHeader("Content-Type", "text/csv");
 
       const csvStream = fastCsv.format({ headers: true });
 
-      csvStream.pipe(res);
+      csvStream.pipe(res).on("end", () => {
+        console.log("CSV file successfully sent.");
+      });
+
       records.forEach((record) => {
         csvStream.write({
           UserID: record.userID,
@@ -139,16 +137,11 @@ export class ReportController {
       });
 
       csvStream.end();
-
-      return res.status(200).json({
-        success: true,
-        message: "Report Generated Successfully",
-      });
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        error: error.message,
-      });
+      console.error("Export Error:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Server Error" });
+      }
     }
   }
 }
