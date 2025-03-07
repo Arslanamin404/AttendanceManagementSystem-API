@@ -18,7 +18,7 @@ The Attendance Management System backend is a Node.js and Express-based API that
 ### 1️⃣ Clone the Repository
 
 ```sh
-git clone https://github.com/your-repo/attendance-management.git
+git clone https://github.com/Arslanamin404/AttendanceManagementSystem-API.git
 cd attendance-management
 ```
 
